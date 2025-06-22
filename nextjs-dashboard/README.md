@@ -133,3 +133,82 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 ```
+
+### リクエストウォーターフォール
+
+直列に実行される = リクエストウォーターフォール
+
+```ts
+const revenue = await fetchRevenue();
+const latestInvoices = await fetchLatestInvoices(); // wait for fetchRevenue() to finish
+const {
+  numberOfInvoices,
+  numberOfCustomers,
+  totalPaidInvoices,
+  totalPendingInvoices,
+} = await fetchCardData(); // wait for fetchLatestInvoices() to finish
+```
+
+並列実行したい場合は Promise.all を使う
+
+```ts
+const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
+const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
+const invoiceStatusPromise = sql`SELECT
+         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
+         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
+         FROM invoices`;
+
+const data = await Promise.all([
+  invoiceCountPromise,
+  customerCountPromise,
+  invoiceStatusPromise,
+]);
+```
+
+### ストリーミング
+
+ルートを小さな「チャンク」に分割し、準備が整うとサーバーからクライアントに段階的にストリーミングできるデータ転送技術
+
+ストリーミングにより、低速なデータリクエストによってページ全体がブロックされることを防ぐことができる
+
+Next.js でストリーミングを実装する方法は 2 つ：
+
+- ページレベルでは、loading.tsx ファイルを作成 (これにより<Suspense>が作成されます) 。
+
+```ts
+export default function Loading() {
+  return <div>Loading...</div>;
+}
+```
+
+- コンポーネントレベルでは、<Suspense>を使用してより細かく制御できる。
+
+loading.tsx がある階層すべてに適用されるため、それを避ける場合はルートグループを使用する
+
+#### Suspense の境界をどこにおくか？
+
+いくつかの要素で決まる
+
+- ページのストリーミング中にユーザーにどのようにページを体験してもらいたいか。
+- 優先したいコンテンツか。
+- コンポーネントがデータ取得に依存している場合。
+
+### 部分的な事前レンダリング（Implementing Partial Prerendering）
+
+部分的な事前レンダリングは、Next.js の新しい機能で、ページの一部を事前にレンダリングし、他の部分はクライアントサイドで動的にレンダリングすることができる。
+これにより、ページの一部を事前にレンダリングして高速に表示し、他の部分は必要なときにクライアントサイドでレンダリングすることができます。
+部分的な事前レンダリングを実装するには、以下の手順を実行します。
+
+```ts
+// next.config.ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  experimental: {
+    ppr: "incremental",
+  },
+};
+
+export default nextConfig;
+```
