@@ -261,3 +261,13 @@ const handleSearch = useDebouncedCallback((term) => {
 - サーバーコンポーネント内でサーバーアクションを呼び出す利点は、プログレッシブエンハンスメント（漸進的拡張）
   - つまり、クライアントに JavaScript がまだ読み込まれていなくてもフォームが機能する
 - サーバアクションは Next.js のキャッシュと深く統合される
+
+ソース： app/lib/actions.ts
+
+### エラー処理
+
+error.tsx
+
+not-found.tsx
+
+に実装
