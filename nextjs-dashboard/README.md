@@ -174,7 +174,7 @@ const data = await Promise.all([
 
 Next.js でストリーミングを実装する方法は 2 つ：
 
-- ページレベルでは、loading.tsx ファイルを作成 (これにより<Suspense>が作成されます) 。
+- ページレベルでは、loading.tsx ファイルを作成 (これにより<Suspense>が作成される) 。
 
 ```ts
 export default function Loading() {
@@ -211,4 +211,47 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+```
+
+以下を追加
+
+/app/dashboard/layout.tsx
+
+```ts
+export const experimental_ppr = true;
+```
+
+### 検索とページネーション
+
+Next の機能
+
+- useSearchParams：URL の検索パラメータを取得
+- usePathname：現在の URL のパス名を取得
+- useRouter：クライアントコンポーネント内のルート間のナビゲーションをプログラムで可能にする
+
+コンポーネント
+
+- app/ui/search.tsx ： 検索
+- app/ui/invoices/pagination.tsx : ページ間移動
+- app/ui/invoices/table.tsx : 表示
+
+#### デバウンス（use-debounce）
+
+- キーを押すたびに URL が更新され、キーを押すたびにデータベースにクエリが送信されるのを防ぐ（リソース節約）
+- デバウンスとは、関数の実行頻度を制限するプログラミング手法
+- ユーザーが入力を停止してから特定の時間 (↓ の場合は 300 ミリ秒) が経過した後にのみコードを実行
+
+```tsx
+import { useDebouncedCallback } from "use-debounce";
+
+// Inside the Search Component...
+const handleSearch = useDebouncedCallback((term) => {
+  const params = new URLSearchParams(searchParams);
+  if (term) {
+    params.set("query", term);
+  } else {
+    params.delete("query");
+  }
+  replace(`${pathname}?${params.toString()}`);
+}, 300);
 ```
